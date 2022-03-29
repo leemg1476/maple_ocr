@@ -1,18 +1,17 @@
 from PIL import Image
 from PIL import ImageFilter as imgfilter
-from PIL import ImageDraw
 from pytesseract import *
-import matplotlib.pylab as plt
-import os
-import pandas as pd
 from difflib import SequenceMatcher as sm
 
 from itertools import combinations as comb
 from collections import defaultdict
+import base64
+import sys
+import numpy as np
+from io import BytesIO
 
-
-def ITT(image_path,mode):
-    image = Image.open(image_path).convert('L')
+def ITT(img,mode):
+    image = img.convert('L')
     size = image.size
     image = image.resize((size[0]*3,size[1]*3))
 
@@ -23,9 +22,24 @@ def ITT(image_path,mode):
     # plt.imshow(image)
     # plt.show()
 
-    img_string = image_to_string(image, lang=mode)
-    img_string = img_string.split('\n')
-    return img_string[:-1]
+    img_string_kor = image_to_string(image, lang='kor')
+    img_string_kor = img_string_kor.split('\n')
+
+    img_string_eng = image_to_string(image, lang='eng')
+    img_string_eng = img_string_eng.split('\n')
+
+    d = image_to_data(image,output_type=Output.DICT)
+    n_boxes = len(d['level'])
+
+    location = []
+    for i in range(n_boxes):
+        x, y, w, h = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+        location.append([x,y,w,h])
+
+    location.sort(key = lambda x: x[1])
+    location_y = [[y,h] for _,y,_,h in location[1:]]
+
+    return img_string_kor[:-1],img_string_eng[:-1],location_y
 
 
 
@@ -116,37 +130,14 @@ def find_quest_index(string_kors,string_engs):
                 break
 
     res_index = [i for _,_,i in result]
-    print(res_index)
     return res_index
 
 
 
 
-def get_rect_from_image(image_path,result_index):
-
-    r_image = Image.open(image_path)
-    size = r_image.size
-    r_image = r_image.resize((size[0]*3,size[1]*3))
-
-    image = Image.open(image_path).convert('L')
-    size = image.size
-    image = image.resize((size[0]*3,size[1]*3))
-
-    image = image.filter(imgfilter.GaussianBlur)
-    image = image.filter(imgfilter.SHARPEN)
-    image = image.filter(imgfilter.GaussianBlur)
+def get_rect_from_image(image,location_y,result_index):
 
 
-    d = image_to_data(image,output_type=Output.DICT)
-    n_boxes = len(d['level'])
-
-    location = []
-    for i in range(n_boxes):
-        x, y, w, h = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-        location.append([x,y,w,h])
-
-    location.sort(key = lambda x: x[1])
-    location_y = [[y,h] for _,y,_,h in location[1:]]
     dic = defaultdict(int)
 
     for y,h in location_y:
@@ -154,25 +145,48 @@ def get_rect_from_image(image_path,result_index):
             dic[y] = h
         elif dic[y] > h:
             dic[y] = h
-
     for i in range(image.size[0]):
         for j in range(image.size[1]):
 
-            rgb = r_image.getpixel((i,j))
             for k,y in enumerate(dic):
                 h = dic[y]
 
                 if not(k in result_index):
                     continue
 
+                rgb = image.getpixel((i, j))
                 if y <= j <= y+h:
                     if rgb != (255,255,255):
-                        r_image.putpixel((i,j),(rgb[2],rgb[1],rgb[0]))
+                        image.putpixel((i,j),(rgb[2],rgb[1],rgb[0]))
                         break
                 else:
                     continue
+    image = image.resize((image.size[0]//3,image.size[1]//3))
 
-    return r_image
+    return image
+
+
+def main(base_stirng):
+
+    img = Image.open(BytesIO(base64.b64decode(base_string)))
+    size = img.size
+    img = img.resize((size[0]*3,size[1]*3))
+
+    string_kor,string_eng,location_y = ITT(img,'kor')
+
+    result_index = find_quest_index(string_kor,string_eng)
+
+    imgs = get_rect_from_image(x,location_y,result_index)
+
+    buffer = BytesIO()
+    imgs.save(buffer,format = 'jpg')
+    img_string = base64.b64encode(buffer.getvalue())
+
+    return img_string
+
+
+
+
 # string_kors = ITT('image_07.jpg','kor')
 # string_engs = ITT('image_07.jpg','eng')
 #
