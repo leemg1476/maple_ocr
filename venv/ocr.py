@@ -2,7 +2,7 @@ from PIL import Image
 from PIL import ImageFilter as imgfilter
 from pytesseract import *
 from difflib import SequenceMatcher as sm
-
+import pandas as pd
 from itertools import combinations as comb
 from collections import defaultdict
 import base64
@@ -24,9 +24,11 @@ def ITT(img,mode):
 
     img_string_kor = image_to_string(image, lang='kor')
     img_string_kor = img_string_kor.split('\n')
+    img_string_kor = [a for a in img_string_kor if len(a) != 0]
 
     img_string_eng = image_to_string(image, lang='eng')
     img_string_eng = img_string_eng.split('\n')
+    img_string_eng = [a for a in img_string_eng if len(a) != 0]
 
     d = image_to_data(image,output_type=Output.DICT)
     n_boxes = len(d['level'])
@@ -39,7 +41,7 @@ def ITT(img,mode):
     location.sort(key = lambda x: x[1])
     location_y = [[y,h] for _,y,_,h in location[1:]]
 
-    return img_string_kor[:-1],img_string_eng[:-1],location_y
+    return img_string_kor,img_string_eng,location_y
 
 
 
@@ -47,7 +49,6 @@ def find_quest_index(string_kors,string_engs):
     file = pd.read_csv('maple_daily_quest_index.csv')
     file = file.dropna(axis=0)
     file = file.dropna(axis=1)
-
     tmp = [[] for _ in range(len(string_kors))]
     maxs = [0 for _ in range(len(string_kors))]
 
@@ -77,7 +78,6 @@ def find_quest_index(string_kors,string_engs):
 
     quest_index = file.loc[file['지역'] == area]
     # print(quest_index)#지역으로 퀘스트 목록 추출
-
     for _,i,_ in tmp:
         tmp_index = quest_index[quest_index['일퀘이름'] == i].index
         quest_index = quest_index.drop(tmp_index)#인식된 목록을 제외한 퀘스트 목록 추출
@@ -161,38 +161,28 @@ def get_rect_from_image(image,location_y,result_index):
                         break
                 else:
                     continue
+
     image = image.resize((image.size[0]//3,image.size[1]//3))
 
     return image
 
 
-def main(base_stirng):
+def main(base_string):
 
     img = Image.open(BytesIO(base64.b64decode(base_string)))
-    size = img.size
-    img = img.resize((size[0]*3,size[1]*3))
 
     string_kor,string_eng,location_y = ITT(img,'kor')
 
     result_index = find_quest_index(string_kor,string_eng)
 
-    imgs = get_rect_from_image(x,location_y,result_index)
+    size = img.size
+    img = img.resize((size[0]*3,size[1]*3))
+    imgs = get_rect_from_image(img,location_y,result_index)
 
     buffer = BytesIO()
-    imgs.save(buffer,format = 'jpg')
-    img_string = base64.b64encode(buffer.getvalue())
+    img.save(buffer, format="JPEG")
+    img_string = base64.b64encode(buffer.getvalue()).decode()
 
     return img_string
-
-
-
-
-# string_kors = ITT('image_07.jpg','kor')
-# string_engs = ITT('image_07.jpg','eng')
-#
-# # print(string_kor,string_eng)
-#
-# print(string_kors,string_engs)
-# find_quest_index(string_kors,string_engs)
 
 
