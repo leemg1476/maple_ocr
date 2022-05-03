@@ -1,45 +1,128 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" class="h-100">
-  <head th:fragment="head(title)">
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--  <head th:fragment="head(title)">-->
+<!--    &lt;!&ndash; Required meta tags &ndash;&gt;-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1">-->
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<!--    &lt;!&ndash; Bootstrap CSS &ndash;&gt;-->
+<!--    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">-->
 
-    <link href="cover.css" th:href="@{/cover.css}" rel="stylesheet">
-    <title th:text="${title}">mapleOcr</title>
-  </head>
-  <body class="d-flex h-100 text-center text-white">
+<!--    <link href="cover.css" th:href="@{/cover.css}" rel="stylesheet">-->
+<!--    <title th:text="${title}">mapleOcr</title>-->
+<!--  </head>-->
+<!--  <body class="d-flex h-100 text-center text-white">-->
 
-    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column" th:fragment="default">
-      <header class="mb-auto">
-        <div>
-          <nav class="nav nav-masthead justify-content-center float-md-start">
-            <a href="/index.html" onclick="location.href='/'" style="color: white; text-decoration: none;"><h3>MQ</h3></a>
-          </nav>
-        </div>
-      </header>
+<!--    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column" th:fragment="default">-->
+<!--      <header class="mb-auto">-->
+<!--        <div>-->
+<!--          <nav class="nav nav-masthead justify-content-center float-md-start">-->
+<!--            <a href="/index.html" onclick="location.href='/'" style="color: white; text-decoration: none;"><h3>MQ</h3></a>-->
+<!--          </nav>-->
+<!--        </div>-->
+<!--      </header>-->
 
-      <main class="px-3">
-        <a href="/index.html" onclick="location.href='/'" style="color: white; text-decoration: none;"><h1>MapleStory DailyQuest</h1></a>
+<!--      <main class="px-3">-->
+<!--        <a href="/index.html" onclick="location.href='/'" style="color: white; text-decoration: none;"><h1>MapleStory DailyQuest</h1></a>-->
 
-        <div class="image-upload" id="image-upload">
-        <form method="get" enctype="multipart/form-data">
-          <div class="button">
-            <label for="chooseimg">
-              👉 CLICK HERE! 👈
-            </label>
-          </div>
-          <input type="file" accept="image/*" name="chooseimg" id="chooseimg">
-        </form>
-      </div>
-      </main>
+<!--        <div class="image-upload" id="image-upload">-->
+<!--        <form method="get" enctype="multipart/form-data">-->
+<!--          <div class="button">-->
+<!--            <label for="chooseimg">-->
+<!--              👉 CLICK HERE! 👈-->
+<!--            </label>-->
+<!--          </div>-->
+<!--          <input type="file" accept="image/*" name="chooseimg" id="chooseimg">-->
+<!--        </form>-->
+<!--      </div>-->
+<!--      </main>-->
 
-      <footer class="mt-auto text-white-50">
-        <p>Cover template for <a href="https://getbootstrap.com/" class="text-white">Bootstrap</a>, by <a href="https://twitter.com/mdo" class="text-white">@mdo</a>.</p>
-      </footer>
-    </div>
+<!--      <footer class="mt-auto text-white-50">-->
+<!--        <p>Cover template for <a href="https://getbootstrap.com/" class="text-white">Bootstrap</a>, by <a href="https://twitter.com/mdo" class="text-white">@mdo</a>.</p>-->
+<!--      </footer>-->
+<!--    </div>-->
+<!--  </body>-->
+
+  <body>
+
+    <input type="file" accept="image/*" name="img" id="image" onchange="test(this)">
+
+    <script>
+        function test(input){
+      // 이미지 파일 불러오기
+      var file = input.files[0];
+
+      // 이미지 변수 선언 및 초기화
+      var newImage = document.createElement("img");
+      newImage.setAttribute("class", 'img');
+
+      // 이미지 속성 지정 : file, 가로, 세로 등
+      newImage.src = URL.createObjectURL(file);
+      newImage.style.width = "100%";
+      newImage.style.height = "100%";
+      newImage.style.objectFit = "contain";
+
+
+
+
+      // 이미지 처리 작업
+
+      var pyshell = require("python-shell")
+      var fs = require("fs");
+      const { PythonShell } = require("python-shell");
+
+      // var data = fs.readFileSync("./image_07.jpg")
+      var data = fs.readFileSync(newImage)
+      var base64 = data.toString("base64");
+
+      //파이썬.py파일과, 실행시킬 python 프로그램의 경로를 문자열로 입력
+      // ocr 파일명으로 변경하기!!
+      pyshell = new PythonShell('scripts.py');
+
+      //base64로 인코딩한 문자열을 전송
+      pyshell.send(base64);
+
+      pyshell.on("message", rebase64 => {
+          var err = null;
+
+          //base64 문자열을  Buffer(bytes)타입으로 디코딩
+          result = Buffer.from(rebase64,"base64");
+          console.log(result);
+          fs.writeFileSync("result.jpg", result);
+      });
+
+      pyshell.end(err => {
+      if (err) {
+          console.log(err);
+      }
+      });
+
+      //
+
+
+
+
+
+      // 이미지 보이는 곳(div : image-show)에 이미지 파일 추가
+      var container = document.getElementById('image-show');
+      container.appendChild(newImage);
+      container.style.visibility = "visible";
+
+      // 파일 이름은 보이지 않게 설정
+      file.textContent = null;
+
+      var newImage = document.getElementById('image-show').lastElementChild;
+
+      //이미지는 화면에 나타나고
+      newImage.style.visibility = "visible";
+
+      //이미지 업로드 버튼은 숨겨진다
+      document.getElementById('image-upload').style.visibility = 'hidden';
+
+  }
+    </script>
+
+
+
   </body>
 </html>
