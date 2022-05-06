@@ -6,7 +6,6 @@ import pandas as pd
 from itertools import combinations as comb
 from collections import defaultdict
 import base64
-import sys
 import numpy as np
 from io import BytesIO
 
@@ -45,8 +44,7 @@ def ITT(img,mode):
 
 
 
-def find_quest_index(string_kors,string_engs):
-    file = pd.read_csv('maple_daily_quest_index.csv')
+def find_quest_index(string_kors,string_engs,file):
     file = file.dropna(axis=0)
     file = file.dropna(axis=1)
     tmp = [[] for _ in range(len(string_kors))]
@@ -167,13 +165,12 @@ def get_rect_from_image(image,location_y,result_index):
     return image
 
 
-def main(base_string):
-
+def main(base_string,dataframe):
     img = Image.open(BytesIO(base64.b64decode(base_string)))
-
+    df = dataframe
     string_kor,string_eng,location_y = ITT(img,'kor')
 
-    result_index = find_quest_index(string_kor,string_eng)
+    result_index = find_quest_index(string_kor,string_eng,dataframe)
 
     size = img.size
     img = img.resize((size[0]*3,size[1]*3))
