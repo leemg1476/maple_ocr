@@ -6,7 +6,7 @@
 
 ## Technology stack
 * Front <br>
-&nbsp; etc
+&nbsp; html, css, js
 
 * Back <br>
-&nbsp; etc
+&nbsp; python
